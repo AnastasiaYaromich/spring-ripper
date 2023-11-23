@@ -1,9 +1,6 @@
 package screensaver;
 
-import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.*;
 
 import java.awt.*;
 import java.util.Random;
@@ -13,6 +10,7 @@ import java.util.Random;
 public class JavaConfig {
 
     @Bean
+    @Scope(value = "periodical")
     public Color color() {
         Random random = new Random();
         return new Color(random.nextInt(255),
@@ -20,11 +18,13 @@ public class JavaConfig {
                 random.nextInt(255));
     }
 
-    public static void main(String[] args) throws InterruptedException {
-        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(JavaConfig.class);
-        while(true) {
-            context.getBean(ColorFrame.class).showOnRandomPlace();
-            Thread.sleep(50);
-        }
+    @Bean
+    public ColorFrame frame() {
+        return new ColorFrame() {
+            @Override
+            protected Color getColor() {
+                return color();
+            }
+        };
     }
 }
