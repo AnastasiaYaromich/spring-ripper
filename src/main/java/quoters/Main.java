@@ -5,6 +5,7 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 public class Main {
     public static void main(String[] args) throws InterruptedException {
         ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext("context.xml");
+        context.getBean(Quoter.class).sayQuote();
     }
 }
 
@@ -143,6 +144,64 @@ public class Main {
  * потом третий конструктор - @AfterProxy за который отвечает ContextListener.
  *
  * 4. ContextClosedEvent
+ *
+ *
+ * BeanFactoryPostProcessor - позволяет настраивать bean defintions
+ * до того как создаются бины. Этот интерфейс имеет единственный метод -
+ * postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory).
+ * В этом методе есть доступ к beanfactory т.е. мы можем как то повлиять на
+ * beanFactory до того как она начнет работать и повлиять на bean definitions
+ * до того как beanfactory из них начнет создавать beans.
+ *
+ * Допустим у в beandefinitions есть deprecated классы.
+ * Нет смысла создавать такие бины и потом оборачивать их в Proxy.
+ * Нужно до того как beanFactory начнет создавать объекты
+ * поменять все классы в beandefinitions с deprecated на новую
+ * имплементацию.
+ *
+ * Итак все вместе выглядит следующим образом:
+ * 1. Парсируется xml.
+ * 2. Создаются beandefinitions
+ * 3. Созданные beandefinitions обрабатываются beanfactorypostprocessors
+ * 4. Создаются beanpostprocessors
+ * 5. Создаются beans
+ * 6. Все готовые объекты сидят в IoC контейнере (обычная HashMap)
+ *
+ * Если мы работаем не с xml а с аннотациями нужно над
+ * классами из которых нужно создавать beans прописать аннотацию
+ * @Component.
+ * Для того чтобы просканировать пакеты с которых лежат классы
+ * аннотированные @Component еть два варианта:
+ * 1. нужно в xml указать namespace component-scan.
+ * 2. либо использовать AnnotationConfigApplicationContext
+ *
+ * ClassPathBeanDefinitionScanner сканирует весь пакет
+ * и ищет классы которые аннотированные аннотацией Component.
+ * И создает BeanDefinitions из всех классов над которыми стоит @Component.
+ *
+ * Со Spring 3 появилась возможность конфигурировать beans
+ * в Java файле. Xml хорош тем что его можно держать как внешний ресурс и не
+ * перекомпилировать проект если что то поменяли. Но если bean нуждался в какой
+ * то кастомной логике то логику в xml не напишешь.
+ * Конфигурация написанная на Jave дает возможность настраивать beans
+ * запуская какие то методы хотя в бд и т.д.
+ *
+ * Java файл парсирует AnnotatedBeanDefinitionReader.
+ * Он не исплеменитрует никакой интерфейс и просто
+ * явялется частью ApplicationContext.
+ * Когда мы создаем AnnotationConfigApplicationContext(JavaConfig.class),
+ * внутри него есть AnnotatedBeanDefinitionReader.
+ * На Java config c помощью cglib накручивается proxy
+ * и каждый раз когда нужен bean происходит делегация в
+ * bean definition который в Java config прописан.
+ *
+ * Java кофиги обрабатывает ConfigurationClassPostProcessor
+ * (особый BeanFactoryPostProcessor). Он создает beanDefinitions
+ * по @Bean.
+ *
+ * Обновление prototype в singleton'e и написание кастомного scope.
+ *
+ *
  *
  *
  *
